@@ -1,0 +1,2 @@
+# Genko
+Kolay Gentoo (Genko)
