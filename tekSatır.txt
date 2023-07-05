@@ -1,0 +1,110 @@
+# Dosya Sistemleri ve Disk Bölümleri
+
+fdisk /dev/sda -l 
+
+sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' << FDISK_CMDS  | fdisk /dev/sda
+g      # Yeni GPT bölümü oluşturur
+n      # yeni bölüm ekler
+1      # Bölüm numarası
+       # Varsayılan olarak ilk sektör alanını boş bırakıyoruz 
++512MB # Bölüm boyutu
+n      # 
+2      # 
+       #  
++1GB   #  
+t      # Bölüm tipini değiştirir
+1      # 
+uefi   # EFI bölümü
+t      # 
+2      # 
+swap   # Takas alanı
+n      #
+3      #
+       #
+       # Geriye kalan bütün alan
+w      # bölümlendirme tablosunu yazar ve çıkar
+FDISK_CMDS
+
+mkfs.fat -F 32 /dev/sda1 &&   mkswap /dev/sda2    &&       swapon /dev/sda2      &&     mkfs.ext4 /dev/sda3     &&   mkdir --parents /mnt/gentoo && mount /dev/sda3 /mnt/gentoo && cd /mnt/gentoo
+
+# 
+
+wget https://bouncer.gentoo.org/fetch/root/all/releases/amd64/autobuilds/20230702T170203Z/stage3-amd64-openrc-20230702T170203Z.tar.xz
+
+gpg --import /usr/share/openpgp-keys/gentoo-release.asc
+
+gpg --verify gentoo-release.asc
+
+tar xpvf stage3-*.tar.xz --xattrs-include='*.*' --numeric-owner
+
+wget https://raw.githubusercontent.com/tugsatenes/yapilandirmaDosyalari/main/make.conf
+
+cp make.conf /mnt/gentoo/etc/portage/make.conf
+
+
+mirrorselect -i -o >> /mnt/gentoo/etc/portage/make.conf
+
+mkdir --parents /mnt/gentoo/etc/portage/repos.conf
+
+cp /mnt/gentoo/usr/share/portage/config/repos.conf /mnt/gentoo/etc/portage/repos.conf/gentoo.conf
+
+cp --dereference /etc/resolv.conf /mnt/gentoo/etc/
+
+mount --types proc /proc /mnt/gentoo/proc
+mount --rbind /sys /mnt/gentoo/sys
+mount --make-rslave /mnt/gentoo/sys
+mount --rbind /dev /mnt/gentoo/dev
+mount --make-rslave /mnt/gentoo/dev
+mount --bind /run /mnt/gentoo/run
+mount --make-slave /mnt/gentoo/run
+
+chroot /mnt/gentoo /bin/bash
+source /etc/profile
+export PS1="(chroot) ${PS1}"
+
+mount /dev/sda1 /boot
+
+emerge-webrsync
+
+emerge --sync
+
+eselect news read
+
+eselect profile list
+
+eselect profile set 1
+
+emerge --ask --verbose --update --deep --newuse @world
+
+emerge --ask app-portage/cpuid2cpuflags
+
+cpuid2cpuflags
+
+echo "*/* $(cpuid2cpuflags)" > /etc/portage/package.use/00cpu-flags
+
+echo "Europe/Istanbul" > /etc/timezone
+
+emerge --config sys-libs/timezone-data
+
+echo tr_TR.UTF-8 UTF-8 \
+tr_TR ISO-8859-9 > /etc/locale.gen
+
+locale-gen
+
+eselect locale list
+
+eselect locale set 6
+
+env-update && source /etc/profile && export PS1="(chroot) ${PS1}"
+
+emerge --ask sys-kernel/linux-firmware  sys-firmware/intel-microcode 
+
+emerge --ask sys-kernel/gentoo-sources
+
+# First, list all installed kernels: 
+
+eselect kernel list
+
+eselect kernel set 1
+
+ls -l /usr/src/linux
